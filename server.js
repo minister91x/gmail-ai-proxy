@@ -1,21 +1,21 @@
-import express from "express";
 import fetch from "node-fetch";
 
-const app = express();
-app.use(express.json());
-
-// Middleware CORS
-app.use((req, res, next) => {
+export default async function handler(req, res) {
+  // Thêm CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200); // Dừng ở đây cho preflight request
-  }
-  next();
-});
 
-app.post("/api/reply", async (req, res) => {
+  // Xử lý preflight request
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  // Chỉ cho phép POST
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
   const { emailBody, language, tone } = req.body;
   const apiKey = process.env.OPENAI_API_KEY;
 
@@ -44,7 +44,7 @@ app.post("/api/reply", async (req, res) => {
 
     const data = await r.json();
 
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+    if (!data.choices?.[0]?.message) {
       return res.status(500).json({ error: "Invalid response from OpenAI" });
     }
 
@@ -52,6 +52,3 @@ app.post("/api/reply", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
-
-app.listen(3000, () => console.log("Server running on port 3000"));
